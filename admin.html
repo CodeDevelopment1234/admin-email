@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - Email Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex items-center justify-center min-h-screen px-4 bg-gray-100">
+  <div class="bg-white border shadow-lg rounded-md w-full max-w-sm p-6">
+    <h1 class="text-xl text-center font-semibold mb-6">Manage Emails</h1>
+
+    <!-- Add Email Form -->
+    <form id="addEmailForm" class="space-y-4">
+      <label for="addEmail" class="text-sm text-gray-800">Add Email</label>
+      <input
+        id="addEmail"
+        type="email"
+        class="w-full border border-gray-300 rounded px-2 py-2 text-sm"
+        placeholder="Enter email to add"
+        required
+      />
+      <button
+        type="submit"
+        class="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded"
+      >
+        Add Email
+      </button>
+    </form>
+
+    <!-- Remove Email Form -->
+    <form id="removeEmailForm" class="space-y-4 mt-6">
+      <label for="removeEmail" class="text-sm text-gray-800">Remove Email</label>
+      <input
+        id="removeEmail"
+        type="email"
+        class="w-full border border-gray-300 rounded px-2 py-2 text-sm"
+        placeholder="Enter email to remove"
+        required
+      />
+      <button
+        type="submit"
+        class="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded"
+      >
+        Remove Email
+      </button>
+    </form>
+
+    <!-- Show/Hide Emails Section -->
+    <div class="mt-8">
+      <button
+        id="toggleEmailsBtn"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded mb-4"
+      >
+        Show Allowed Emails
+      </button>
+
+      <ul id="emailList" class="text-sm text-gray-800 list-disc list-inside space-y-1 hidden">
+        <li class="text-gray-400 italic">Loading...</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = "https://cbldkuldotanwiyqhbxu.supabase.co/functions/v1";
+    const ADD_EMAIL_URL = `${BASE_URL}/add-email`;
+    const REMOVE_EMAIL_URL = `${BASE_URL}/remove-email`;
+    const LIST_EMAILS_URL = `${BASE_URL}/list-email`;
+    
+    const addEmailForm = document.getElementById("addEmailForm");
+    const removeEmailForm = document.getElementById("removeEmailForm");
+    const emailList = document.getElementById("emailList");
+    const toggleEmailsBtn = document.getElementById("toggleEmailsBtn");
+
+    let isEmailListVisible = false;
+
+    const headers = {
+      "Content-Type": "application/json"
+    };
+
+    async function loadEmails() {
+      emailList.innerHTML = "<li class='text-gray-400 italic'>Loading...</li>";
+      emailList.classList.remove("hidden");
+
+      try {
+        const res = await fetch(LIST_EMAILS_URL, {
+          method: "GET",
+          headers: headers,
+        });
+        const data = await res.json();
+
+        if (!data.emails || data.emails.length === 0) {
+          emailList.innerHTML = "<li class='text-gray-500 italic'>No emails found</li>";
+          return;
+        }
+
+        emailList.innerHTML = "";
+        data.emails.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item.email;
+          emailList.appendChild(li);
+        });
+      } catch (err) {
+        emailList.innerHTML = "<li class='text-red-500'>Error loading emails</li>";
+        console.error(err);
+      }
+    }
+
+    toggleEmailsBtn.addEventListener("click", async () => {
+      isEmailListVisible = !isEmailListVisible;
+
+      if (isEmailListVisible) {
+        toggleEmailsBtn.textContent = "Hide Allowed Emails";
+        await loadEmails();
+      } else {
+        toggleEmailsBtn.textContent = "Show Allowed Emails";
+        emailList.classList.add("hidden");
+      }
+    });
+
+    addEmailForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const email = document.getElementById("addEmail").value.trim();
+
+      try {
+        const res = await fetch(ADD_EMAIL_URL, {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || "Email added successfully");
+          addEmailForm.reset();
+          if (isEmailListVisible) loadEmails();
+        } else {
+          alert(data.error || "Failed to add email");
+        }
+      } catch (err) {
+        alert("Error adding email: " + err.message);
+      }
+    });
+
+    removeEmailForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const email = document.getElementById("removeEmail").value.trim();
+
+      try {
+        const res = await fetch(REMOVE_EMAIL_URL, {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || "Email removed successfully");
+          removeEmailForm.reset();
+          if (isEmailListVisible) loadEmails();
+        } else {
+          alert(data.error || "Failed to remove email");
+        }
+      } catch (err) {
+        alert("Error removing email: " + err.message);
+      }
+    });
+  </script>
+
+  <script>
+    // Disable right-click
+    document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    // Disable common dev tool shortcuts
+    document.addEventListener("keydown", function (e) {
+      if (
+        e.key === "F12" ||
+        (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J" || e.key === "C")) ||
+        (e.ctrlKey && e.key === "U")
+      ) {
+        e.preventDefault();
+      }
+    });
+
+    // DevTools detection (simple)
+    let checkDevTools = () => {
+      const threshold = 160;
+      if (
+        window.outerHeight - window.innerHeight > threshold ||
+        window.outerWidth - window.innerWidth > threshold
+      ) {
+        window.location.href = "about:blank";
+      }
+    };
+
+    setInterval(checkDevTools, 1000);
+  </script>
+
+</body>
+</html>
