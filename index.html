@@ -188,7 +188,7 @@
     async function addEmailsBatch(emails) {
       progressContainer.classList.remove("hidden");
       for (let i = 0; i < emails.length; i++) {
-        const email = emails[i];
+        const email = emails[i].toLowerCase();
         try {
           const res = await fetch(ADD_EMAIL_URL, {
             method: "POST",
